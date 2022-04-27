@@ -124,13 +124,13 @@ class Slime(pygame.sprite.Sprite):
         self.boss = boss
         if self.boss == True:
             self.image = pygame.image.load(self.bframes[self.n])
-            self.rect = self.image.get_rect()
+            self.rect = pygame.Rect(self.x, self.y, 128, 128)
             self.lwid = 544
             self.lhei = 344
             self.hp = 5
         else:
             self.image = pygame.image.load(self.frames[self.n])
-            self.rect = self.image.get_rect()
+            self.rect = pygame.Rect(self.x, self.y, 256, 256)
             self.lwid = 672
             self.lhei = 472
             self.hp = 1
@@ -156,7 +156,6 @@ class Slime(pygame.sprite.Sprite):
             self.y -= 1
         else:
             self.rangen_y()
-        self.rect = self.image.get_rect()
 
     def animate(self):
         if self.n >= 2:
@@ -164,8 +163,10 @@ class Slime(pygame.sprite.Sprite):
         self.n += 1
         if self.boss == True:
             self.image = pygame.image.load(self.bframes[self.n])
+            self.rect = pygame.Rect(self.x, self.y, 256, 256)
         else:
             self.image = pygame.image.load(self.frames[self.n])
+            self.rect = pygame.Rect(self.x, self.y, 128, 128)
 
 
 def hitCheck(slimes, bullets):
@@ -207,7 +208,6 @@ slimes = []
 slimes.append(o)
 run = True
 while run:
-    print(ybullets)
     clock.tick(27)
     pygame.time.delay(10)
 
