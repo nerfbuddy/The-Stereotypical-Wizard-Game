@@ -2,7 +2,8 @@ import pygame
 import random
 
 pygame.init()
-win = pygame.display.set_mode((800, 800))
+health = 5
+win = pygame.display.set_mode((1000, 1000))
 pygame.display.set_caption("Chuck the Weezard")
 # Player
 walkUp = [pygame.image.load("cwchuckweezardb1.png"), pygame.image.load("cwchuckweezardb1.png"),
@@ -50,7 +51,7 @@ class player(object):
         self.down = False
         self.walkCount = 0
         self.rect = char.get_rect()
-        self.hp = 5
+        self.hitbox = (self.x + 20, self.y, 28, 60)
 
     def draw(self, win):
         if self.walkCount + 1 >= 27:
@@ -80,34 +81,18 @@ class player(object):
                 win.blit(walkUp[0], (self.x, self.y))
 
 
-class Xprojectile(object):
+class projectile(object):
     def __init__(self, x, y, radius, color, facing):
         self.x = x
         self.y = y
         self.radius = radius
         self.color = color
         self.facing = facing
-        self.vel = 20 * facing
+        self.vel = 8 * facing
         self.rect = pygame.Rect(self.x, self.y, self.radius, self.radius)
 
     def draw(self, win):
         pygame.draw.circle(win, self.color, (self.x, self.y), self.radius)
-        print("n")
-
-
-class Yprojectile(object):
-    def __init__(self, x, y, radius, color, facing):
-        self.x = x
-        self.y = y
-        self.radius = radius
-        self.color = color
-        self.facing = facing
-        self.vel = 20 * facing
-        self.rect = pygame.Rect(self.x, self.y, self.radius, self.radius)
-
-    def draw(self, win):
-        pygame.draw.circle(win, self.color, (self.x, self.y), self.radius)
-        print("y")
 
 
 class Slime(pygame.sprite.Sprite):
@@ -122,15 +107,16 @@ class Slime(pygame.sprite.Sprite):
         self.gx = 0
         self.gy = 0
         self.boss = boss
+        self.hitbox = (self.x + 20, self.y, 28, 60)
         if self.boss == True:
             self.image = pygame.image.load(self.bframes[self.n])
-            self.rect = pygame.Rect(self.x, self.y, 128, 128)
+            self.rect = self.image.get_rect()
             self.lwid = 544
             self.lhei = 344
             self.hp = 5
         else:
             self.image = pygame.image.load(self.frames[self.n])
-            self.rect = pygame.Rect(self.x, self.y, 256, 256)
+            self.rect = self.image.get_rect()
             self.lwid = 672
             self.lhei = 472
             self.hp = 1
@@ -164,10 +150,12 @@ class Slime(pygame.sprite.Sprite):
         self.n += 1
         if self.boss == True:
             self.image = pygame.image.load(self.bframes[self.n])
-            self.rect = pygame.Rect(self.x, self.y, 128, 128)
         else:
             self.image = pygame.image.load(self.frames[self.n])
-            self.rect = pygame.Rect(self.x, self.y, 128, 128)
+
+    def hit(self):
+        print('hit')
+
 
 def hitCheck(slimes, bullets):
     for s in range(len(slimes)):
@@ -176,22 +164,20 @@ def hitCheck(slimes, bullets):
                 slimes[s].hp -= 1
         if slimes[s].hp <= 0:
             slimes.pop(s)
+            bullets.pop(bullets.index(bullet))
 
 
 def redrawGameWindow():
     win.blit(bg, (0, 0))
     man.draw(win)
-    hitCheck(slimes, xbullets)
-    hitCheck(slimes, ybullets)
-    for bullet in xbullets:
-        bullet.draw(win)
-    for bullet in ybullets:
+    for bullet in bullets:
         bullet.draw(win)
     for slime in slimes:
         for x in range(3):
             slime.move()
         slime.animate()
         win.blit(slime.image, (slime.x, slime.y))
+    hitCheck(slimes, bullets)
     pygame.display.update()
 
 
@@ -201,57 +187,59 @@ def Gameover():
 
 # mainloop
 man = player(200, 410, 64, 64)
-xbullets = []
-ybullets = []
+bullets = []
+shootLoop = 0
 o = Slime(60, 60, False)
 slimes = []
 slimes.append(o)
 run = True
 while run:
-    print(ybullets)
     clock.tick(27)
     pygame.time.delay(10)
+
+    if shootLoop > 0:
+        shootLoop += 1
+    if shootLoop > 3:
+        shootLoop = 0
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
 
-    for xbullet in xbullets:
-        if 800 > xbullet.x > 0:
-            xbullet.x += xbullet.vel
-            xbullet.rect = pygame.Rect(xbullet.x, xbullet.y, xbullet.radius, xbullet.radius)
+    for bullet in bullets:
+        if bullet.y - bullet.radius < o.hitbox[1] + o.hitbox[3] and bullet.y + bullet.radius > o.hitbox[1]:
+            if bullet.x + bullet.radius > o.hitbox[0] and bullet.x - bullet.radius < o.hitbox[0] + o.hitbox[2]:
+                o.hit()  # calls enemy hit method
+                bullets.pop(bullets.index(bullet))  # removes bullet from bullet list
+        if man.left or man.right:
+            if 1000 > bullet.x > 0:
+                bullet.x += bullet.vel
+                bullet.rect = pygame.Rect(bullet.x, bullet.y, bullet.radius, bullet.radius)
+            else:
+                bullets.pop(bullets.index(bullet))
         else:
-            xbullets.pop(xbullets.index(xbullet))
-    for ybullet in ybullets:
-        if 800 > ybullet.y > 0:
-            ybullet.y += ybullet.vel
-            ybullet.rect = pygame.Rect(ybullet.x, ybullet.y, ybullet.radius, ybullet.radius)
-        else:
-            ybullets.pop(ybullets.index(ybullet))
+            if 1000 > bullet.x > 0:
+                bullet.y += bullet.vel
+                bullet.rect = pygame.Rect(bullet.x, bullet.y, bullet.radius, bullet.radius)
+            else:
+                bullets.pop(bullets.index(bullet))
     keys = pygame.key.get_pressed()
 
-    if keys[pygame.K_SPACE]:
+    if keys[pygame.K_SPACE] and shootLoop == 0:
         if man.left or man.up:
             facing = -1
         else:
             facing = 1
-        if man.left or man.right:
-            if len(xbullets) < 5 and len(ybullets) < 5:
-                xbullets.append(
-                    Xprojectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 255, 0), facing))
-        if man.up or man.down:
-            if len(xbullets) < 5 and len(ybullets) < 5:
-                ybullets.append(
-                    Yprojectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 255, 0),
-                                facing))
-
+        if len(bullets) < 5000:
+            bullets.append(
+                projectile(round(man.x + man.width // 2), round(man.y + man.height // 2), 6, (0, 255, 0), facing))
     if keys[pygame.K_LEFT] and man.x > man.vel:
         man.x -= man.vel
         man.left = True
         man.right = False
         man.down = False
         man.standing = False
-    elif keys[pygame.K_RIGHT] and man.x < 800 - man.width - man.vel:
+    elif keys[pygame.K_RIGHT] and man.x < 1000 - man.width - man.vel:
         man.x += man.vel
         man.right = True
         man.left = False
@@ -266,7 +254,7 @@ while run:
         man.left = False
         man.right = False
         man.standing = False
-    elif keys[pygame.K_DOWN] and man.y < 800 - man.width - man.vel:
+    elif keys[pygame.K_DOWN] and man.y < 1000 - man.width - man.vel:
         man.y += man.vel
         man.up = False
         man.down = True
@@ -277,7 +265,7 @@ while run:
         man.standing = True
         man.walkCount = 0
 
-    if man.hp == 0:
+    if health == 0:
         Gameover()
     redrawGameWindow()
 
